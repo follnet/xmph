@@ -2,7 +2,7 @@ name: Xiaomi Daily Push
 
 on:
   schedule:
-    - cron: '30 12 * * 1-5'  # 每个工作日（周一至周五）北京时间 20:30
+    - cron: '30 0 * * 1-5'  # 每个工作日（周一至周五）北京时间 8:30
   workflow_dispatch:
 
 jobs:
