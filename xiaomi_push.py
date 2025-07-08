@@ -6,9 +6,10 @@ import requests
 from notion_client import Client
 
 # ====== 配置项 ======
-NOTION_TOKEN = "你的_notion_token"
-DATABASE_ID = "你的_database_id"
-BARK_API = "https://api.day.app/你的_bark_key"
+notion_token = os.getenv("NOTION_TOKEN")
+database_id = os.getenv("NOTION_DATABASE_ID")
+bark_token = os.getenv("BARK_TOKEN")
+bark_url = f"https://api.day.app/{bark_token}"
 SYMBOL = "01810"  # 小米港股
 ADD_INTERVAL_DAYS = 10  # 加仓间隔（交易日）
 
@@ -129,7 +130,7 @@ msg_lines = [
     f"\n📌 建议操作：{建议}"
 ]
 message = "\n".join(msg_lines)
-requests.get(f"{BARK_API}/{类型}?body=" + message)
+requests.get(f"{bark_url}/{类型}?body=" + message)
 
 # ====== 写入 Notion ======
 notion.pages.create(
