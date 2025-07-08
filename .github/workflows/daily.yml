@@ -22,11 +22,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install --upgrade akshare
 
       - name: Run xiaomi_push.py
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          BARK_API: ${{ secrets.BARK_API }}
+          BARK_TOKEN: ${{ secrets.BARK_TOKEN }}
         run: python xiaomi_push.py
