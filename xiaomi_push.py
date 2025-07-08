@@ -4,6 +4,7 @@ import pandas as pd
 import akshare as ak
 import requests
 from notion_client import Client
+from akshare.stock_calendar.hk_stock_calendar import stock_hk_trade_calendar
 
 # ====== 配置项 ======
 NOTION_TOKEN = "你的_notion_token"
@@ -12,8 +13,17 @@ BARK_API = "https://api.day.app/你的_bark_key"
 SYMBOL = "01810"  # 小米港股
 ADD_INTERVAL_DAYS = 10  # 加仓间隔（交易日）
 
-# ====== 获取最近交易日数据 ======
+# ====== 判断今天是否是港股交易日 ======
 today = datetime.date.today()
+calendar = stock_hk_trade_calendar()
+calendar['date'] = pd.to_datetime(calendar['date']).dt.date
+is_trading_day = today in calendar[calendar['is_trading_day'] == 1]['date'].values
+
+if not is_trading_day:
+    print("❌ 今天不是港股交易日，跳过执行")
+    exit(0)
+
+# ====== 获取最近交易日数据 ======
 df = ak.stock_hk_daily(symbol=SYMBOL)
 df['date'] = pd.to_datetime(df['date'])
 df = df[df['date'].dt.date < today].sort_values('date')
@@ -38,7 +48,7 @@ else:
 recent_high = df['close'].max()
 回撤 = (recent_high - today_price) / recent_high
 
-# KDJ 计算（仅取近60日数据）
+# ====== KDJ 计算 ======
 def calc_kdj(data):
     low_list = data['low'].rolling(9, min_periods=1).min()
     high_list = data['high'].rolling(9, min_periods=1).max()
@@ -49,18 +59,18 @@ def calc_kdj(data):
     return j
 
 kdj_j_daily = calc_kdj(df.tail(60)).iloc[-1]
-df_weekly = df.set_index('date').resample('W-FRI').agg({'open':'first','high':'max','low':'min','close':'last'})
+
+df_weekly = df.set_index('date').resample('W-FRI').agg({
+    'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last'
+})
 df_weekly = df_weekly[df_weekly['close'].notna()]
 kdj_j_weekly = calc_kdj(df_weekly.tail(30)).iloc[-1]
 
-# ====== 查询 Notion 过去 ADD_INTERVAL_DAYS 个交易日是否加仓 ======
+# ====== 查询 Notion 过去 N 个交易日是否加仓 ======
 notion = Client(auth=NOTION_TOKEN)
 
 past_trade_dates = df[df['date'].dt.date < last_trade_date]['date'].dt.date.tolist()
-if len(past_trade_dates) >= ADD_INTERVAL_DAYS:
-    interval_start = past_trade_dates[-ADD_INTERVAL_DAYS]
-else:
-    interval_start = past_trade_dates[0]
+interval_start = past_trade_dates[-ADD_INTERVAL_DAYS] if len(past_trade_dates) >= ADD_INTERVAL_DAYS else past_trade_dates[0]
 
 filter_query = {
     "property": "日期",
@@ -73,11 +83,10 @@ recent_ops = results.get("results", [])
     for page in recent_ops
 )
 
-# 输出文本
+# ====== 判断建议操作 ======
 跌幅输出 = f"{跌幅:.2%} ｜ {'✅ 建议买入（跌幅大）' if 跌幅 >= 0.10 else '❌ 跌幅不足'}"
 回撤输出 = f"{回撤:.2%} ｜ {'✅ 建议买入（回撤深）' if 回撤 >= 0.15 else '❌ 回撤不足'}"
 
-# ====== 建议操作判断（动态加仓手数 + 间隔判断） ======
 建议 = "❌ 不建议操作"
 类型 = "不建议操作"
 
@@ -107,12 +116,12 @@ if 类型 == "不建议操作":
         建议 = "✅ 定投 1 手"
         类型 = "定投"
 
-# ====== Bark 推送内容 ======
+# ====== Bark 推送 ======
 msg_lines = [
     f"📅 日期：{today_str}",
     f"📈 当前股价：HK${today_price:.2f}（{change_ratio:+.2%}）",
     f"📉 跌幅（20日）：{跌幅输出}",
-    f"📉 回撤（近高点）：{回撤输出}",
+    f"📉 回撤（近高点）：{回撤_output}",
     f"\n📐 KDJ 日线 J 值：{kdj_j_daily:.2f}",
     f"📐 KDJ 周线 J 值：{kdj_j_weekly:.2f}",
     f"\n📌 建议操作：{建议}"
@@ -120,15 +129,15 @@ msg_lines = [
 message = "\n".join(msg_lines)
 requests.get(f"{BARK_API}/{类型}?body=" + message)
 
-# ====== Notion 写入 ======
+# ====== 写入 Notion ======
 notion.pages.create(
     parent={"database_id": DATABASE_ID},
     properties={
         "当前股价（涨跌幅）": {"title": [{"text": {"content": f"HK${today_price:.2f}（{change_ratio:+.2%}）"}}]},
         "日期": {"date": {"start": today_str}},
         "类型": {"select": {"name": 类型}},
-        "20日跌幅": {"rich_text": [{"text": {"content": 跌幅输出}}]},
-        "回撤": {"rich_text": [{"text": {"content": 回撤输出}}]},
+        "20日跌幅": {"rich_text": [{"text": {"content": 跌幅_output}}]},
+        "回撤": {"rich_text": [{"text": {"content": 回撤_output}}]},
         "KDJ 日线 J": {"number": float(round(kdj_j_daily, 2))},
         "KDJ 周线 J": {"number": float(round(kdj_j_weekly, 2))},
         "建议操作": {"select": {"name": 建议}},
