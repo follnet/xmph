@@ -1,0 +1,29 @@
+name: Xiaomi Daily Push
+
+on:
+  schedule:
+    - cron: '30 12 * * 1-5'  # 每个工作日（周一至周五）北京时间 20:30
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Xiaomi Push Script
+      env:
+        BARK_TOKEN: ${{ secrets.BARK_TOKEN }}
+      run: |
+        python xiaomi_push.py
