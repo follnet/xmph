@@ -3,6 +3,8 @@ import pandas as pd
 import akshare as ak
 import requests
 import os
+import pytz
+from datetime import datetime
 from notion_client import Client
 
 # ====== 配置项 ======
@@ -14,7 +16,12 @@ SYMBOL = "01810"  # 小米港股代码
 ADD_INTERVAL_DAYS = 10  # 加仓间隔（交易日）
 
 # ====== 判断是否为交易日 ======
-today = datetime.date.today()
+# 获取北京时间今天日期
+beijing = pytz.timezone("Asia/Shanghai")
+now_beijing = datetime.now(beijing)
+today = now_beijing.date()
+
+# 获取交易日历并判断是否是交易日
 calendar_df = ak.tool_trade_date_hist_sina()
 calendar_df["trade_date"] = pd.to_datetime(calendar_df["trade_date"]).dt.date
 is_trading_day = today in calendar_df["trade_date"].tolist()
