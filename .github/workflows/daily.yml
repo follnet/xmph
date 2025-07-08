@@ -9,6 +9,11 @@ jobs:
   run-script:
     runs-on: ubuntu-latest
 
+    env:  # ✅ 统一设置环境变量
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+      BARK_TOKEN: ${{ secrets.BARK_TOKEN }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -24,8 +29,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run xiaomi_push.py
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          BARK_TOKEN: ${{ secrets.BARK_TOKEN }}
         run: python xiaomi_push.py
