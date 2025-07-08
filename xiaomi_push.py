@@ -130,7 +130,7 @@ msg_lines = [
     f"\n📌 建议操作：{建议}"
 ]
 message = "\n".join(msg_lines)
-requests.get(f"{BARK_URL}/{类型}?body=" + message)
+requests.get(f"{BARK_URL}/{message}")
 
 # ====== 写入 Notion ======
 notion.pages.create(
