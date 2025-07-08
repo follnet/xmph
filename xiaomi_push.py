@@ -2,6 +2,7 @@ import datetime
 import pandas as pd
 import akshare as ak
 import requests
+import os
 from notion_client import Client
 
 # ====== 配置项 ======
