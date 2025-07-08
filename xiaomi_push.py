@@ -4,7 +4,6 @@ import pandas as pd
 import akshare as ak
 import requests
 from notion_client import Client
-from akshare.stock_calendar.hk_stock_calendar import stock_hk_trade_calendar
 
 # ====== 配置项 ======
 NOTION_TOKEN = "你的_notion_token"
@@ -14,10 +13,12 @@ SYMBOL = "01810"  # 小米港股
 ADD_INTERVAL_DAYS = 10  # 加仓间隔（交易日）
 
 # ====== 判断今天是否是港股交易日 ======
+from akshare import tool_trade_date_hist_sina
+
 today = datetime.date.today()
-calendar = stock_hk_trade_calendar()
-calendar['date'] = pd.to_datetime(calendar['date']).dt.date
-is_trading_day = today in calendar[calendar['is_trading_day'] == 1]['date'].values
+calendar = tool_trade_date_hist_sina(exchange="hk")
+calendar = pd.to_datetime(calendar["trade_date"]).dt.date
+is_trading_day = today in calendar
 
 if not is_trading_day:
     print("❌ 今天不是港股交易日，跳过执行")
@@ -60,6 +61,7 @@ def calc_kdj(data):
 
 kdj_j_daily = calc_kdj(df.tail(60)).iloc[-1]
 
+# 周线 KDJ
 df_weekly = df.set_index('date').resample('W-FRI').agg({
     'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last'
 })
@@ -84,8 +86,8 @@ recent_ops = results.get("results", [])
 )
 
 # ====== 判断建议操作 ======
-跌幅输出 = f"{跌幅:.2%} ｜ {'✅ 建议买入（跌幅大）' if 跌幅 >= 0.10 else '❌ 跌幅不足'}"
-回撤输出 = f"{回撤:.2%} ｜ {'✅ 建议买入（回撤深）' if 回撤 >= 0.15 else '❌ 回撤不足'}"
+跌幅_output = f"{跌幅:.2%} ｜ {'✅ 建议买入（跌幅大）' if 跌幅 >= 0.10 else '❌ 跌幅不足'}"
+回撤_output = f"{回撤:.2%} ｜ {'✅ 建议买入（回撤深）' if 回撤 >= 0.15 else '❌ 回撤不足'}"
 
 建议 = "❌ 不建议操作"
 类型 = "不建议操作"
@@ -120,7 +122,7 @@ if 类型 == "不建议操作":
 msg_lines = [
     f"📅 日期：{today_str}",
     f"📈 当前股价：HK${today_price:.2f}（{change_ratio:+.2%}）",
-    f"📉 跌幅（20日）：{跌幅输出}",
+    f"📉 跌幅（20日）：{跌幅_output}",
     f"📉 回撤（近高点）：{回撤_output}",
     f"\n📐 KDJ 日线 J 值：{kdj_j_daily:.2f}",
     f"📐 KDJ 周线 J 值：{kdj_j_weekly:.2f}",
