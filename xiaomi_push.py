@@ -2,6 +2,7 @@ import akshare as ak
 import pandas as pd
 import datetime
 import requests
+import os
 
 # ---------- 参数设置 ----------
 bark_token = os.getenv("BARK_TOKEN")
