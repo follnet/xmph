@@ -28,5 +28,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run xiaomi_push.py
-        run: python xiaomi_push.py
+      - name: Run xmp_job.py
+        run: python xmp_job.py
