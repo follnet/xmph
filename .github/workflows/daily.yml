@@ -2,7 +2,7 @@ name: Run Xiaomi Push Script
 
 on:
   schedule:
-    - cron: '30 0 * * 1-5'   # 每个工作日 UTC 00:30，即北京时间 08:30 执行
+    - cron: '0 0 * * 1-5'  
   workflow_dispatch:         # 支持手动触发
 
 jobs:
